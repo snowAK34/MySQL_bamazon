@@ -1,5 +1,6 @@
 const inquirer = require('inquirer');
 const mysql = require('mysql');
+const cTable = require('console.table');
 
 const connection = mysql.createConnection({
     host: "localhost",
@@ -17,14 +18,31 @@ connection.connect(function(err) {
 
 function afterConnection() {
     connection.query("SELECT item_id, product_name, price FROM products", function(err, res) {
-      if (err) throw err;
-      console.table(res);
-      purchasePrompt();
+        if (err) throw err;
+        console.table(res);
+        actionQuery();
     });
-  }
+}
 
-  let purchaseID = 0;
-  function purchasePrompt() {
+function actionQuery() {
+    inquirer.prompt([
+        {
+            type: "list",
+            message: "What would you like to do?",
+            choices: ["Make a Purchase", "Exit"],
+            name: "customerAction"
+        }
+    ]).then(function(answer) {
+        if (answer.customerAction === "Make a Purchase") {
+            purchasePrompt();
+        } else {
+            connection.end();
+        }
+    });
+}
+
+let purchaseID = 0;
+function purchasePrompt() {
   inquirer.prompt([
       {
         type: "input",
@@ -46,20 +64,24 @@ function afterConnection() {
 }
 
 function productPurchase(amt){
-    connection.query("SELECT item_id,stock_quantity,price FROM products", function(error, res){
+    connection.query("SELECT item_id,stock_quantity,price FROM products", function(err, res){
+        if (err) throw err;
         let cost = 0;
         let stock = 0;
+        let purchaseAmt = parseInt(amt);
         for (let i=0; i < res.length; i++) {
                 if (res[i].item_id === purchaseID) {
                     stock = res[i].stock_quantity;
                     cost = res[i].price;
                 }
         }
-        if (parseInt(amt) > stock) {
+        if (purchaseAmt > stock) {
             console.log("Insufficient quantity!")
+            actionQuery();
         } else {
-            let newQuantity = res.stock_quantity - parseInt(amt);
-            let total = parseInt(amt) * cost;
+            let newQuantity = stock - purchaseAmt;
+
+            let total = purchaseAmt * cost;
             connection.query("UPDATE products SET ? WHERE ?",
             [
                 {
@@ -69,10 +91,30 @@ function productPurchase(amt){
                     item_id: purchaseID
                 }
              ],
-             function(err,data){
+             function(error, data){
+                if (error) throw error;
                 console.log("Your total is $" + total + "\nThank you for your purchase!");
+                updateSalesTable(res.item_id, purchaseAmt);
+                actionQuery();
             });
         }
     })
-    connection.end();
+}
+
+function updateSalesTable(itemId, sold) {
+    connection.query("UPDATE sales SET ? WHERE ?",
+        [
+            {
+                number_sold: sold
+            },
+            {
+                item_id: itemId
+            }
+
+        ],
+        function(err, res) {
+            if (err) throw err;
+        }
+    )
+
 }
