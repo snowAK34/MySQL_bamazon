@@ -46,16 +46,33 @@ function actionQuery() {
     });
 }
 
+let idArr = [];
+function getCurrentIds() {
+    connection.query("SELECT item_id FROM products", function(err, res) {
+        if (err) throw err;
+        for (res.item_id in res) {
+            idArr.push(res.item_id);
+        }
+    });
+}
+
 let purchaseID = 0;
 function purchasePrompt() {
-  inquirer.prompt([
-      {
-        type: "input",
-        message: "Enter the item_id of what you would like to purchase: ",
-        name: "purchaseID",
-      }
-  ]).then(function(answers) {
-      purchaseID = parseInt(answers.purchaseID);
+    getCurrentIds();
+    inquirer.prompt([
+        {
+            type: "input",
+            message: "Enter the item_id of what you would like to purchase:",
+            name: "purchaseID",
+            validate: function(value) {
+                if (value <= idArr.length && value > 0) {
+                    return true;
+                }
+                return false;
+            }
+        }
+    ]).then(function(answers) {
+        purchaseID = parseInt(answers.purchaseID);
         inquirer.prompt([
             {
             type: "input",
@@ -93,7 +110,7 @@ function productPurchase(amt){
         } else {
             let newQuantity = stock - purchaseAmt;
 
-            let total = purchaseAmt * cost;
+            let total = (purchaseAmt * cost).toFixed(2);
             connection.query("UPDATE products SET ? WHERE ?",
             [
                 {

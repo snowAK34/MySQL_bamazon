@@ -123,7 +123,19 @@ function increaseStock(arr) {
     });
 }
 
+let deptArr = [];
+
+function getDepartments() {
+    connection.query("SELECT department_name FROM departments", function (err, res) {
+        if (err) throw err;
+        for (let i = 0; i < res.length; i++) {
+            deptArr.push(res[i].department_name);
+        }
+    });
+}
+
 function addProduct() {
+    getDepartments();
     inquirer.prompt([
         {
             type: "input",
@@ -131,8 +143,9 @@ function addProduct() {
             name: "name"
         },
         {
-            type: "input",
+            type: "list",
             message: "What department it this product being added to?",
+            choices: deptArr,
             name: "department"
         },
         {

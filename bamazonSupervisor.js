@@ -67,7 +67,7 @@ function addDepartment() {
         {
             type: "input",
             message: "What is the name of the department to be added?",
-            name: "name"
+            name: "name",
         },
         {
             type: "input",
