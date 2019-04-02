@@ -1,6 +1,9 @@
 const inquirer = require('inquirer');
 const mysql = require('mysql');
 const cTable = require('console.table');
+const chalk = require('chalk');
+
+const divider = "---------------------------------------------------------------------------\n";
 
 const connection = mysql.createConnection({
     host: "localhost",
@@ -12,14 +15,15 @@ const connection = mysql.createConnection({
 
 connection.connect(function(err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId);
     afterConnection();
 })
 
 function afterConnection() {
     connection.query("SELECT item_id, product_name, price FROM products", function(err, res) {
         if (err) throw err;
+        console.log(divider);
         console.table(res);
+        console.log(divider);
         actionQuery();
     });
 }
@@ -55,7 +59,14 @@ function purchasePrompt() {
             {
             type: "input",
             message: "How many would you like to buy?",
-            name: "quantity"
+            name: "quantity",
+            validate: function(value) {
+                if (isNaN(value) === false && value >= 0) {
+                  return true;
+                }
+                console.log(chalk.red("  Must be a valid number"));
+                return false;
+            }
             }
         ]).then(function(amt){
             productPurchase(amt.quantity);
@@ -76,7 +87,7 @@ function productPurchase(amt){
                 }
         }
         if (purchaseAmt > stock) {
-            console.log("Insufficient quantity!")
+            console.log(chalk.bgRed("Insufficient quantity!"));
             actionQuery();
         } else {
             let newQuantity = stock - purchaseAmt;
@@ -93,7 +104,7 @@ function productPurchase(amt){
              ],
              function(error, data){
                 if (error) throw error;
-                console.log("Your total is $" + total + "\nThank you for your purchase!");
+                console.log(chalk.black.bgCyan("Your total is $" + total + "\nThank you for your purchase!"));
                 updateSalesTable(res.item_id, purchaseAmt);
                 actionQuery();
             });

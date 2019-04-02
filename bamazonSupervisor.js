@@ -1,6 +1,9 @@
 const inquirer = require('inquirer');
 const mysql = require('mysql');
 const cTable = require('console.table');
+const chalk = require('chalk');
+
+const divider = "---------------------------------------------------------------------------\n";
 
 const connection = mysql.createConnection({
     host: "localhost",
@@ -39,6 +42,7 @@ function viewSalesTable() {
         if (err) throw err;
         let grossSales;
         let netSales;
+        console.log(divider);
         for (var i = 0; i < res.length; i++) {
             grossSales = parseFloat(res[i].number_sold * res[i].price);
             netSales = grossSales - parseInt(res[i].over_head_costs);
@@ -52,6 +56,7 @@ function viewSalesTable() {
                 }
             ]);
         }
+        console.log(divider);
         afterConnection();
     });  
 }
@@ -66,7 +71,14 @@ function addDepartment() {
         {
             type: "input",
             message: "What is the overhead cost?",
-            name: "cost"
+            name: "cost",
+            validate: function(value) {
+                if (isNaN(value) === false) {
+                  return true;
+                }
+                console.log(chalk.red("  Must be a valid number"));
+                return false;
+            }
         }
     ]).then(function(response) {
         connection.query(
@@ -77,7 +89,7 @@ function addDepartment() {
             },
             function(err, res) {
                 if (err) throw err;
-                console.log(response.name, "Department added!");
+                console.log(chalk.black.bgGreen(response.name, "Department added!"));
                 afterConnection();
             }
         );

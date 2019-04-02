@@ -1,6 +1,9 @@
 const inquirer = require('inquirer');
 const mysql = require('mysql');
 const cTable = require('console.table');
+const chalk = require('chalk');
+
+const divider = "---------------------------------------------------------------------------\n";
 
 const connection = mysql.createConnection({
     host: "localhost",
@@ -12,7 +15,6 @@ const connection = mysql.createConnection({
 
 connection.connect(function(err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId);
     afterConnection();
 })
 
@@ -42,7 +44,9 @@ function afterConnection() {
 function viewProducts() {
     connection.query("SELECT item_id, product_name, price, stock_quantity FROM products", function(err, res) {
       if (err) throw err;
+      console.log(divider);
       console.table(res);
+      console.log(divider);
       afterConnection();
     });
 }
@@ -51,12 +55,14 @@ function viewLowInventory() {
     let lowInvArr = [];
     connection.query("SELECT item_id, product_name, price, stock_quantity FROM products", function(err, res) {
         if (err) throw err;
+        console.log(divider);
         for (let i=0; i < res.length; i++) {
             if (res[i].stock_quantity < 5) {
                 console.table(res[i]);
                 lowInvArr.push(res[i].product_name);
             }
         }
+        console.log(divider);
         inquirer.prompt([
             {
                 type: "confirm",
@@ -85,14 +91,18 @@ function increaseStock(arr) {
         {
             type: "input",
             message: "How many would you like to add?",
-            name: "incAmount"
+            name: "incAmount",
+            validate: function(value) {
+                if (isNaN(value) === false && value >= 0) {
+                  return true;
+                }
+                return false;
+            }
         }
     ]).then(function(response) {
         let newAmt;
-        console.log("Product to update: ", response);
         connection.query("Select stock_quantity FROM products WHERE product_name = ?", response.prodUpdate, function(err, numRes) {
             if (err) throw err;
-            console.log(numRes);
             newAmt = numRes[0].stock_quantity + parseInt(response.incAmount);
             connection.query("UPDATE products SET ? WHERE ?",
             [
@@ -105,7 +115,7 @@ function increaseStock(arr) {
             ],
             function(error,data){
                 if (error) throw error;
-                console.log(response.prodUpdate, " has been updated!");
+                console.log(chalk.black.bgGreen(response.prodUpdate, " has been updated!"));
                 afterConnection();
             });
         });
@@ -113,7 +123,6 @@ function increaseStock(arr) {
 }
 
 function addProduct() {
-    console.log("insert product!")
     inquirer.prompt([
         {
             type: "input",
@@ -128,12 +137,26 @@ function addProduct() {
         {
             type: "input",
             message: "What is the unit price?",
-            name: "price"
+            name: "price",
+            validate: function(value) {
+                if (isNaN(value) === false && value >= 0) {
+                  return true;
+                }
+                console.log(chalk.red("  Must be a valid number"));
+                return false;
+            }
         },
         {
             type: "input",
             message: "How many are being added?",
-            name: "quantity"
+            name: "quantity",
+            validate: function(value) {
+                if (isNaN(value) === false && value >= 0) {
+                  return true;
+                }
+                console.log(chalk.red("  Must be a valid number"));
+                return false;
+            }
         }
     ]).then(function(response) {
         connection.query(
@@ -146,7 +169,7 @@ function addProduct() {
             },
             function(err, res) {
                 if (err) throw err;
-            console.log(response.name, "was added to products!");
+            console.log(chalk.black.bgGreen(response.name, "was added to products!"));
             afterConnection();
             }
         );
