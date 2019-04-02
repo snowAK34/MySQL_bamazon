@@ -1,3 +1,4 @@
+require('dotenv').config();
 const inquirer = require('inquirer');
 const mysql = require('mysql');
 const cTable = require('console.table');
@@ -6,10 +7,10 @@ const chalk = require('chalk');
 const divider = "---------------------------------------------------------------------------\n";
 
 const connection = mysql.createConnection({
-    host: "localhost",
+    host: process.env.DB_HOST,
     port: 3306,
-    user: "root",
-    password: "iast433g",
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
     database: "bamazon_db"
 })
 
